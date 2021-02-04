@@ -2,6 +2,10 @@ from multiprocessing import Pool, Queue
 from vladiate import Vlad
 from vladiate import logs
 from vladiate import exits
+from vladiate import Vlad
+from vladiate.inputs import LocalFile
+from vladiate.tools import tree_to_dict, simplify
+import lark
 
 import os
 import sys
@@ -36,6 +40,22 @@ def parse_args():
         dest="vladfile",
         default="vladfile",
         help="Python module to import, e.g. '../other.py'. Default: vladfile",
+    )
+
+    parser.add_argument(
+        "-u",
+        "--umlfile",
+        dest="umlfile",
+        default="",
+        help="UML schema for validate",
+    )
+
+    parser.add_argument(
+        "-c",
+        "--csvfile",
+        dest="csvfile",
+        default="",
+        help="CSV file for validate",
     )
 
     # List vladiate commands found in loaded vladiate files/source files
@@ -169,6 +189,23 @@ def load_vladfile(path):
     vlads = dict(filter(is_vlad, vars(imported).items()))
     return imported.__doc__, vlads
 
+def load_umlfile(umlfile, csvfile):
+    """
+    Import given umlfile path and return callables.
+    """
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    grammar_file_path = os.path.join(dir_path, "grammar.ebnf")
+    with open(grammar_file_path) as f:
+        parser = lark.Lark(f.read())
+    with open(umlfile) as f:
+        tree = parser.parse(f.read())
+    res = {}
+    tree_to_dict(tree, res)
+    res = simplify(res)
+    vlads = {}
+    for val in res.keys():
+        vlads[val] = type(val, (Vlad,), dict(source = LocalFile(csvfile), validators = res[val]))
+    return vlads
 
 def _vladiate(vlad):
     global result_queue
@@ -190,15 +227,20 @@ def main():
         print("Vladiate %s" % (get_distribution("vladiate").version,))
         return exits.OK
 
-    vladfile = find_vladfile(arguments.vladfile)
-    if not vladfile:
-        logger.error(
-            "Could not find any vladfile! Ensure file ends in '.py' and see "
-            "--help for available options."
-        )
-        return exits.NOINPUT
+    if arguments.umlfile:
+        assert os.path.exists(arguments.umlfile)
+        assert os.path.exists(arguments.csvfile)
+        vlads = load_umlfile(arguments.umlfile, arguments.csvfile)
+    else:
+        vladfile = find_vladfile(arguments.vladfile)
+        if not vladfile:
+            logger.error(
+                "Could not find any vladfile! Ensure file ends in '.py' and see "
+                "--help for available options."
+            )
+            return exits.NOINPUT
 
-    docstring, vlads = load_vladfile(vladfile)
+        docstring, vlads = load_vladfile(vladfile)
 
     if arguments.list_commands:
         logger.info("Available vlads:")

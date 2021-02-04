@@ -62,7 +62,7 @@ setup(
     zip_safe=False,
     install_requires=[],
     extras_require={'s3': ['boto']},
-    tests_require=['pretend', 'pytest', 'black;python_version>="3.6"'],
+    tests_require=['pretend', 'pytest', 'black;python_version>="3.6"', 'lark-parser'],
     cmdclass={'test': PyTest},
     entry_points={
         'console_scripts': [

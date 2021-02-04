@@ -1,4 +1,6 @@
 import re
+from uuid import UUID
+import datetime
 from itertools import islice
 
 from vladiate.exceptions import ValidationException, BadValidatorException
@@ -56,6 +58,26 @@ class IntValidator(CastValidator):
         super(IntValidator, self).__init__(**kwargs)
         self.cast = int
 
+class StrValidator(CastValidator):
+    """ Validates that a field can be cast to an str """
+
+    def __init__(self, **kwargs):
+        super(StrValidator, self).__init__(**kwargs)
+        self.cast = str
+
+class DateValidator(CastValidator):
+    """ Validates that a field can be cast to an str """
+
+    def __init__(self, **kwargs):
+        super(DateValidator, self).__init__(**kwargs)
+        self.cast = lambda v: datetime.datetime.strptime(v, "%Y-%m-%d")
+
+class UUIDValidator(CastValidator):
+    """ Validates that a field can be cast to an str """
+
+    def __init__(self, **kwargs):
+        super(UUIDValidator, self).__init__(**kwargs)
+        self.cast = UUID
 
 class SetValidator(Validator):
     """ Validates that a field is in the given set """
@@ -234,3 +256,9 @@ def _stringify_set(a_set, max_len, max_sort_size=8192):
     if len(a_set) > max_len:
         text += " ({} more suppressed)".format(len(a_set) - max_len)
     return text
+
+TYPE_TO_VALIDATOR = {
+        'int': [IntValidator()],
+        'string': [StrValidator()],
+        'timestamp': [StrValidator()]
+        }
