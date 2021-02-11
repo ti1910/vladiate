@@ -5,6 +5,24 @@ from vladiate.exceptions import ValidationException
 from vladiate.validators import EmptyValidator
 from vladiate import logs
 
+class DictReader(csv.DictReader):
+    @property
+    def fieldnames(self):
+        if self._fieldnames is None:
+            try:
+                self._fieldnames = next(self.reader)
+                if not self._fieldnames or not self._fieldnames[0].startswith('#schema: '):
+                    raise Exception('Failed read schema!')
+                self._fieldnames[0] = self._fieldnames[0][len('#schema: '):]
+                self._fieldnames = [name for name, _ in [field.split() for field in self._fieldnames]]
+                while next(self.reader)[0][0] == '#':
+                    # TODO dont skip meta
+                    pass
+            except StopIteration:
+                pass
+        self.line_num = self.reader.line_num
+        return self._fieldnames
+
 
 class Vlad(object):
     def __init__(
@@ -92,7 +110,7 @@ class Vlad(object):
         self.logger.info(
             "\nValidating {}(source={})".format(self.__class__.__name__, self.source)
         )
-        reader = csv.DictReader(self.source.open(), delimiter=self.delimiter)
+        reader = DictReader(self.source.open(), delimiter=self.delimiter)
 
         if not reader.fieldnames:
             self.logger.info(
