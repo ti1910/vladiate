@@ -26,18 +26,31 @@ def simplify(_dict):
                 class_name = attr['class_name'][0]
         assert class_name
         for attr in c.get('class'):
-            if attr.get('attribute'):
-                for prop in attr['attribute']:
-                    if prop.get('variable'):
-                        name = None
-                        _type = None
-                        for i in prop['variable']:
-                            if i.get('var'):
-                                name = i['var'][0]
-                            if i.get('type'):
-                                _type = i['type'][0]
-                        if not name or not _type:
-                            print((name, _type))
-                        else:
-                            res[class_name][name] = TYPE_TO_VALIDATOR[_type]
+            if attr.get('column'):
+                name = None
+                _type = None
+                validator = None
+                options = []
+                public = False
+                for prop in attr['column']:
+                    if prop.get('name'):
+                        name = prop['name'][0]
+                    elif prop.get('type'):
+                        _type = prop['type'][0]
+                    elif prop.get('options'):
+                        options = set(d['option'][0] for d in prop['options'])
+                    elif prop.get('validator'):
+                        validator = prop['validator'][0]
+                    elif 'public' in prop.keys():
+                        public = True
+                if not name or not _type:
+                    raise Exception(repr(name, _type))
+                if not public:
+                    continue
+                res[class_name][name] = [TYPE_TO_VALIDATOR[_type]()]
+                if validator:
+                    if options:
+                        res[class_name][name].append(TYPE_TO_VALIDATOR[validator](valid_set=options))
+                    else:
+                        res[class_name][name].append(TYPE_TO_VALIDATOR[validator]())
     return res

@@ -258,7 +258,16 @@ def _stringify_set(a_set, max_len, max_sort_size=8192):
     return text
 
 TYPE_TO_VALIDATOR = {
-        'int': [IntValidator()],
-        'string': [StrValidator()],
-        'timestamp': [StrValidator()]
+        'int': IntValidator,
+        'smallint': IntValidator,
+        'bigint': IntValidator,
+        'tinyint': IntValidator,
+        'deident': IntValidator,
+        'from': IntValidator,
+        'tenant_id': IntValidator,
+        'string': StrValidator,
+        'timestamp': StrValidator,
+        'softdelete': StrValidator,
+        'created_at': StrValidator,
+        'regexp': SetValidator,
         }

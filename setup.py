@@ -30,7 +30,6 @@ def readme():
     with open('README.rst') as f:
         return f.read()
 
-
 setup(
     name='vladiate',
     version=__version__,
@@ -58,6 +57,7 @@ setup(
     license='MIT',
     long_description=readme(),
     packages=find_packages(exclude=['examples', 'tests']),
+    package_data = {'vladiate': ['grammar.ebnf']},
     include_package_data=True,
     zip_safe=False,
     install_requires=[],
