@@ -2,19 +2,27 @@ from __future__ import division
 import csv
 from collections import defaultdict
 from vladiate.exceptions import ValidationException
-from vladiate.validators import EmptyValidator
+from vladiate.validators import EmptyValidator, SPARK_TYPE_TO_VALIDATOR
 from vladiate import logs
 
 class DictReader(csv.DictReader):
+    _schema = None
+
+    @property
+    def schema(self):
+        return self._schema
+
     @property
     def fieldnames(self):
         if self._fieldnames is None:
             try:
-                self._fieldnames = next(self.reader)
-                if not self._fieldnames or not self._fieldnames[0].startswith('#schema: '):
+                schema = next(self.reader)
+                if not schema or not schema[0].startswith('#schema: '):
                     raise Exception('Failed read schema!')
-                self._fieldnames[0] = self._fieldnames[0][len('#schema: '):]
-                self._fieldnames = [name for name, _ in [field.split() for field in self._fieldnames]]
+                schema[0] = schema[0][len('#schema: '):]
+                schema = {k:v for k,v in [field.split() for field in schema]}
+                self._schema = schema
+                self._fieldnames = schema.keys()
                 while next(self.reader)[0][0] == '#':
                     # TODO dont skip meta
                     pass
@@ -127,6 +135,16 @@ class Vlad(object):
                 return False
 
         self.missing_fields = set(self.validators) - set(reader.fieldnames)
+        if self.missing_fields:
+            self.logger.info("\033[1;33m" + "Missing..." + "\033[0m")
+            self._log_missing_fields()
+            return False
+
+        for field in reader.schema.keys():
+            if reader.schema[field] not in SPARK_TYPE_TO_VALIDATOR:
+                self.logger.error("Looks like type of {} doesnt mutch with CSV schema".format(field))
+                return False
+
         if self.missing_fields:
             self.logger.info("\033[1;33m" + "Missing..." + "\033[0m")
             self._log_missing_fields()

@@ -257,16 +257,22 @@ def _stringify_set(a_set, max_len, max_sort_size=8192):
         text += " ({} more suppressed)".format(len(a_set) - max_len)
     return text
 
-TYPE_TO_VALIDATOR = {
+SPARK_TYPE_TO_VALIDATOR = {
+        'string': StrValidator,
         'int': IntValidator,
-        'smallint': IntValidator,
         'bigint': IntValidator,
+        'smallint': IntValidator,
         'tinyint': IntValidator,
+        'timestamp': StrValidator,
+        'date': StrValidator,
+        'float': IntValidator,
+        'double': IntValidator,
+        }
+
+TYPE_TO_VALIDATOR = {
         'deident': IntValidator,
         'from': IntValidator,
         'tenant_id': IntValidator,
-        'string': StrValidator,
-        'timestamp': StrValidator,
         'softdelete': StrValidator,
         'created_at': StrValidator,
         'regexp': SetValidator,

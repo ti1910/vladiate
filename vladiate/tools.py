@@ -1,5 +1,5 @@
 import lark
-from .validators import TYPE_TO_VALIDATOR
+from .validators import TYPE_TO_VALIDATOR, SPARK_TYPE_TO_VALIDATOR
 
 def tree_to_dict(item, res):
     if isinstance(item, lark.Tree):
@@ -47,7 +47,7 @@ def simplify(_dict):
                     raise Exception(repr(name, _type))
                 if not public:
                     continue
-                res[class_name][name] = [TYPE_TO_VALIDATOR[_type]()]
+                res[class_name][name] = [SPARK_TYPE_TO_VALIDATOR[_type]()]
                 if validator:
                     if options:
                         res[class_name][name].append(TYPE_TO_VALIDATOR[validator](valid_set=options))
