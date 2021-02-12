@@ -1,5 +1,5 @@
 import lark
-from .validators import TYPE_TO_VALIDATOR, SPARK_TYPE_TO_VALIDATOR
+from .validators import TYPE_TO_VALIDATOR, SPARK_TYPE_TO_VALIDATOR, SKIP_IT
 
 def tree_to_dict(item, res):
     if isinstance(item, lark.Tree):
@@ -41,6 +41,8 @@ def simplify(_dict):
                         options = set(d['option'][0] for d in prop['options'])
                     elif prop.get('validator'):
                         validator = prop['validator'][0]
+                        if validator == 'deprecated':
+                            continue
                     elif 'public' in prop.keys():
                         public = True
                 if not name or not _type:
@@ -48,9 +50,9 @@ def simplify(_dict):
                 if not public:
                     continue
                 res[class_name][name] = [SPARK_TYPE_TO_VALIDATOR[_type]()]
-                if validator:
+                if validator and  validator not in SKIP_IT:
                     if options:
-                        res[class_name][name].append(TYPE_TO_VALIDATOR[validator](valid_set=options))
+                        res[class_name][name].append(TYPE_TO_VALIDATOR[validator](options=options))
                     else:
                         res[class_name][name].append(TYPE_TO_VALIDATOR[validator]())
     return res

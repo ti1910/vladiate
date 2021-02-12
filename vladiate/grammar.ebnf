@@ -72,7 +72,7 @@ arrow_end_1: CNAME
 arrow_end_2: CNAME
 type: CNAME
 name: CNAME
-option: CNAME
+option: (CNAME|WORD|DIGIT)
 sparam: CNAME
 svalue: CNAME|WORD|ESCAPED_STRING|DIGIT
 attribute_name: CNAME

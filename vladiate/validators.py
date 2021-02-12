@@ -63,9 +63,8 @@ class IntValidator(CastValidator):
             return 1
         return int(log(n, 256)) + 1 #TODO byte shift?
 
-    @classmethod
-    def cast(cls, a):
-        assert cls.bytes_needed(a) <= cls.size
+    def cast(self, a):
+        assert self.bytes_needed(a) <= self.size
 
 class BigIntValidator(IntValidator):
     """ Validates that a field can be cast to an bigint """
@@ -85,6 +84,17 @@ class StrValidator(CastValidator):
     def __init__(self, **kwargs):
         super(StrValidator, self).__init__(**kwargs)
         self.cast = str
+
+class LenValidator(CastValidator):
+    """ Validates that a field can be cast to an str with predefined max length"""
+
+    def __init__(self, options, **kwargs):
+        super(LenValidator, self).__init__(**kwargs)
+        assert len(options) == 1
+        self.max_len = int(list(options)[0])
+
+    def cast(self, string):
+        assert len(str(string)) < self.max_len
 
 class DateValidator(CastValidator):
     """ Validates that a field can be cast to an str """
@@ -110,18 +120,18 @@ class UUIDValidator(CastValidator):
 class SetValidator(Validator):
     """ Validates that a field is in the given set """
 
-    def __init__(self, valid_set=[], **kwargs):
+    def __init__(self, options=[], **kwargs):
         super(SetValidator, self).__init__(**kwargs)
-        self.valid_set = set(valid_set)
+        self.options = set(options)
         self.invalid_set = set([])
         if self.empty_ok:
-            self.valid_set.add("")
+            self.options.add("")
 
     def validate(self, field, row={}):
-        if field not in self.valid_set:
+        if field not in self.options:
             self.invalid_set.add(field)
             raise ValidationException(
-                "'{}' is not in {}".format(field, _stringify_set(self.valid_set, 100))
+                "'{}' is not in {}".format(field, _stringify_set(self.options, 100))
             )
 
     @property
@@ -304,4 +314,12 @@ TYPE_TO_VALIDATOR = {
         'softdelete': StrValidator, #TODO
         'created_at': StrValidator, #TODO
         'regexp': SetValidator,
+        'len': LenValidator,
         }
+
+SKIP_IT = [
+        'nodwh',
+        'nostaging',
+        'nocompare',
+        'deprecated',
+        ]
