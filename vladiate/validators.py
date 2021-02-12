@@ -2,6 +2,7 @@ import re
 from uuid import UUID
 import datetime
 from itertools import islice
+from math import log
 
 from vladiate.exceptions import ValidationException, BadValidatorException
 
@@ -53,10 +54,30 @@ class FloatValidator(CastValidator):
 
 class IntValidator(CastValidator):
     """ Validates that a field can be cast to an int """
+    size = 4
 
-    def __init__(self, **kwargs):
-        super(IntValidator, self).__init__(**kwargs)
-        self.cast = int
+    @staticmethod
+    def bytes_needed(n):
+        n = abs(int(n)) * 2
+        if n == 0:
+            return 1
+        return int(log(n, 128)) + 1
+
+    @classmethod
+    def cast(cls, a):
+        assert cls.bytes_needed(a) <= cls.size
+
+class BigIntValidator(IntValidator):
+    """ Validates that a field can be cast to an bigint """
+    size = 8
+
+class SmallIntValidator(IntValidator):
+    """ Validates that a field can be cast to an smallint """
+    size = 2
+
+class TinyIntValidator(IntValidator):
+    """ Validates that a field can be cast to an tinyint """
+    size = 1
 
 class StrValidator(CastValidator):
     """ Validates that a field can be cast to an str """
@@ -259,14 +280,14 @@ def _stringify_set(a_set, max_len, max_sort_size=8192):
 
 SPARK_TYPE_TO_VALIDATOR = {
         'string': StrValidator,
+        'tinyint': TinyIntValidator,
+        'smallint': SmallIntValidator,
         'int': IntValidator,
-        'bigint': IntValidator,
-        'smallint': IntValidator,
-        'tinyint': IntValidator,
+        'bigint': BigIntValidator,
         'timestamp': StrValidator,
         'date': StrValidator,
-        'float': IntValidator,
-        'double': IntValidator,
+        'float': FloatValidator, #TODO 4 bytes conversion
+        'double': FloatValidator,
         }
 
 TYPE_TO_VALIDATOR = {
