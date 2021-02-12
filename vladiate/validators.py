@@ -61,7 +61,7 @@ class IntValidator(CastValidator):
         n = abs(int(n)) * 2
         if n == 0:
             return 1
-        return int(log(n, 128)) + 1
+        return int(log(n, 256)) + 1 #TODO byte shift?
 
     @classmethod
     def cast(cls, a):
@@ -91,7 +91,14 @@ class DateValidator(CastValidator):
 
     def __init__(self, **kwargs):
         super(DateValidator, self).__init__(**kwargs)
-        self.cast = lambda v: datetime.datetime.strptime(v, "%Y-%m-%d")
+        self.cast = lambda v: datetime.datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ") # WTF?
+
+class TimestampValidator(CastValidator):
+    """ Validates that a field can be cast to an str """
+
+    def __init__(self, **kwargs):
+        super(TimestampValidator, self).__init__(**kwargs)
+        self.cast = lambda v: datetime.datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 class UUIDValidator(CastValidator):
     """ Validates that a field can be cast to an str """
@@ -284,17 +291,17 @@ SPARK_TYPE_TO_VALIDATOR = {
         'smallint': SmallIntValidator,
         'int': IntValidator,
         'bigint': BigIntValidator,
-        'timestamp': StrValidator,
-        'date': StrValidator,
+        'timestamp': TimestampValidator, # WTF?
+        'date': DateValidator,
         'float': FloatValidator, #TODO 4 bytes conversion
         'double': FloatValidator,
         }
 
 TYPE_TO_VALIDATOR = {
-        'deident': IntValidator,
-        'from': IntValidator,
-        'tenant_id': IntValidator,
-        'softdelete': StrValidator,
-        'created_at': StrValidator,
+        'deident': IntValidator, #TODO
+        'from': IntValidator, #TODO
+        'tenant_id': IntValidator, #TODO
+        'softdelete': StrValidator, #TODO
+        'created_at': StrValidator, #TODO
         'regexp': SetValidator,
         }
