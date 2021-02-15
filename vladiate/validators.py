@@ -94,7 +94,8 @@ class LenValidator(CastValidator):
         self.max_len = int(list(options)[0])
 
     def cast(self, string):
-        assert len(str(string)) < self.max_len
+        if len(str(string)) > self.max_len:
+            raise ValueError("String is too long!")
 
 class DateValidator(CastValidator):
     """ Validates that a field can be cast to an str """

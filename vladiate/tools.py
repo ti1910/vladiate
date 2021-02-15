@@ -31,7 +31,7 @@ def simplify(_dict):
                 _type = None
                 validator = None
                 options = []
-                public = False
+                public = True
                 for prop in attr['column']:
                     if prop.get('name'):
                         name = prop['name'][0]
@@ -43,8 +43,8 @@ def simplify(_dict):
                         validator = prop['validator'][0]
                         if validator == 'deprecated':
                             continue
-                    elif 'public' in prop.keys():
-                        public = True
+                    elif 'protected' in prop.keys() or 'privet' in prop.keys():
+                        public = False
                 if not name or not _type:
                     raise Exception(repr(name, _type))
                 if not public:

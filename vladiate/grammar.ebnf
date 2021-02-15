@@ -1,4 +1,4 @@
-start: "@startuml" (skinparam | class | relationship)* "@enduml"
+start: "@startuml" (skinparam | class | relationship | note)* "@enduml"
 
 // Skinparam
 skinparam: "skinparam" sparam svalue
@@ -15,8 +15,25 @@ class_group_title: ".." (group_title "..")?
                  | "__" (group_title "__")?
                  | "=="
 
-column: visibility? name type
-      | visibility? name type validator "(" options ")"
+note: "note" position "of" class_name (meta)* "end note"
+
+meta: sonval "(" options ")"
+    | sonval
+
+column: visibility name type (" " validator)*
+
+sonval: "tenant_id" -> tenant_id
+      | "regexp" -> regexp
+      | "created_at" -> created_at
+      | "softdelete" -> softdelete
+      | "deident" -> deident
+      | "size" -> size
+      | "mode" -> mode
+      | "changes" -> changes
+      | "deletion" -> deletion
+
+validator: sonval "(" options ")"
+         | sonval
 
 options: [option ("," option)*]
 
@@ -72,12 +89,12 @@ arrow_end_1: CNAME
 arrow_end_2: CNAME
 type: CNAME
 name: CNAME
-option: (CNAME|WORD|DIGIT)
+option: (CNAME|DIGIT)
 sparam: CNAME
 svalue: CNAME|WORD|ESCAPED_STRING|DIGIT
 attribute_name: CNAME
-validator: CNAME
 class_name: CNAME
+position: CNAME
 stereotype_name: CNAME
 relation_text: (WORD|ESCAPED_STRING|DIGIT|">"|"<")*
 field_text: (WORD|ESCAPED_STRING|DIGIT)*
