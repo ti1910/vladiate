@@ -201,6 +201,7 @@ def load_umlfile(umlfile, csvfile):
         tree = parser.parse(f.read())
     res = {}
     tree_to_dict(tree, res)
+    raise Exception(repr(res))
     res = simplify(res)
     vlads = {}
     for val in res.keys():

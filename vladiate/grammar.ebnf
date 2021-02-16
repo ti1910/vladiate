@@ -1,4 +1,4 @@
-start: "@startuml" (skinparam | class | relationship | note)* "@enduml"
+start: "@startuml" (skinparam | class | relationship | meta)* "@enduml"
 
 // Skinparam
 skinparam: "skinparam" sparam svalue
@@ -15,27 +15,41 @@ class_group_title: ".." (group_title "..")?
                  | "__" (group_title "__")?
                  | "=="
 
-note: "note" position "of" class_name (meta)* "end note"
+meta: "note" position "of" class_name (validator)* "end note"
 
-meta: sonval "(" options ")"
-    | sonval
+position: position_set
+
+position_set: "right" -> right
+        | "left" -> left
 
 column: visibility name type (" " validator)*
 
-sonval: "tenant_id" -> tenant_id
-      | "regexp" -> regexp
-      | "created_at" -> created_at
-      | "softdelete" -> softdelete
-      | "deident" -> deident
-      | "size" -> size
-      | "mode" -> mode
-      | "changes" -> changes
-      | "deletion" -> deletion
+type: type_set
 
-validator: sonval "(" options ")"
-         | sonval
+type_set: "string" -> string
+    | "int" -> int
+    | "bigint" -> bigint
+    | "smallint" -> smallint
+    | "tinyint" -> tyniint
+    | "timestamp" -> timestamp
+    | "date" -> date
+    | "float" -> float
+    | "double" -> double
 
-options: [option ("," option)*]
+attribute_set: "tenant_id" -> tenant_id
+         | "regexp" -> regexp
+         | "created_at" -> created_at
+         | "softdelete" -> softdelete
+         | "deident" -> deident
+         | "size" -> size
+         | "mode" -> mode
+         | "changes" -> changes
+         | "deletion" -> deletion
+
+attribute: attribute_set
+
+validator: attribute "(" [option ("," option)*] ")"
+         | attribute
 
 // Relationships
 relationship: arrow_end_1 cardinality? arrow_head_1 arrow_body arrow_head_2 cardinality? arrow_end_2 [":" relation_text]
@@ -87,19 +101,13 @@ visibility: "+" -> public
 
 arrow_end_1: CNAME
 arrow_end_2: CNAME
-type: CNAME
 name: CNAME
-option: (CNAME|DIGIT)
+option: (CNAME|ESCAPED_STRING|WORD|DIGIT)
 sparam: CNAME
 svalue: CNAME|WORD|ESCAPED_STRING|DIGIT
-attribute_name: CNAME
 class_name: CNAME
-position: CNAME
 stereotype_name: CNAME
 relation_text: (WORD|ESCAPED_STRING|DIGIT|">"|"<")*
-field_text: (WORD|ESCAPED_STRING|DIGIT)*
-method_text: (WORD|ESCAPED_STRING|DIGIT)*
-class_mem_text: (WORD|ESCAPED_STRING|DIGIT)*
 group_title: (WORD|ESCAPED_STRING|DIGIT)*
 
 %import common.CNAME
