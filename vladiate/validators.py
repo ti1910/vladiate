@@ -6,13 +6,19 @@ from math import log
 
 from vladiate.exceptions import ValidationException, BadValidatorException
 
+def COMB(*validators):
+    def wrap(*args, **kwargs):
+        for v in validators:
+            v(*args, **kwargs)
+    return wrap
 
 class Validator(object):
     """ Generic Validator class """
 
-    def __init__(self, empty_ok=False):
+    def __init__(self, empty_ok=False, meta=None, **kwargs):
         self.fail_count = 0
         self.empty_ok = empty_ok
+        self.meta = meta
 
     @property
     def bad(self):
@@ -66,6 +72,11 @@ class IntValidator(CastValidator):
     def cast(self, a):
         assert self.bytes_needed(a) <= self.size
 
+class HexValidator(CastValidator):
+    def __init__(self, **kwargs):
+        super(HexValidator, self).__init__(**kwargs)
+        self.cast = lambda i: int(i, 16)
+
 class BigIntValidator(IntValidator):
     """ Validates that a field can be cast to an bigint """
     size = 8
@@ -102,7 +113,7 @@ class DateValidator(CastValidator):
 
     def __init__(self, **kwargs):
         super(DateValidator, self).__init__(**kwargs)
-        self.cast = lambda v: datetime.datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%fZ") # WTF?
+        self.cast = lambda v: datetime.datetime.strptime(v, "%Y-%m-%dT")
 
 class TimestampValidator(CastValidator):
     """ Validates that a field can be cast to an str """
@@ -267,6 +278,8 @@ class NotEmptyValidator(Validator):
 
 class Ignore(Validator):
     """ Ignore a given field. Never fails """
+    def __init__(self, **kwargs):
+        super(Ignore, self).__init__(**kwargs)
 
     def validate(self, field, row={}):
         pass
@@ -275,6 +288,54 @@ class Ignore(Validator):
     def bad(self):
         pass
 
+
+class JsonSetValidator(Validator):
+    """ JsonSetValidator a given field. Never fails """
+    def __init__(self, **kwargs):
+        super(JsonSetValidator, self).__init__(**kwargs)
+
+    def validate(self, field, row={}):
+        pass
+
+    @property
+    def bad(self):
+        pass
+
+class JsonValidator(Validator):
+    """ JsonSetValidator a given field. Never fails """
+    def __init__(self, **kwargs):
+        super(JsonSetValidator, self).__init__(**kwargs)
+
+    def validate(self, field, row={}):
+        pass
+
+    @property
+    def bad(self):
+        pass
+
+class JsonListValidator(Validator):
+    """ JsonListValidator a given field. Never fails """
+    def __init__(self, **kwargs):
+        super(JsonListValidator, self).__init__(**kwargs)
+
+    def validate(self, field, row={}):
+        pass
+
+    @property
+    def bad(self):
+        pass
+
+class NullValidator(Validator):
+    """ NullValidator a given field. Never fails """
+    def __init__(self, **kwargs):
+        super(NullValidator, self).__init__(**kwargs)
+
+    def validate(self, field, row={}):
+        pass
+
+    @property
+    def bad(self):
+        pass
 
 def _stringify_set(a_set, max_len, max_sort_size=8192):
     """ Stringify `max_len` elements of `a_set` and count the remainings
@@ -302,7 +363,7 @@ SPARK_TYPE_TO_VALIDATOR = {
         'smallint': SmallIntValidator,
         'int': IntValidator,
         'bigint': BigIntValidator,
-        'timestamp': TimestampValidator, # WTF?
+        'timestamp': TimestampValidator,
         'date': DateValidator,
         'float': FloatValidator, #TODO 4 bytes conversion
         'double': FloatValidator,
@@ -313,14 +374,33 @@ TYPE_TO_VALIDATOR = {
         'from': IntValidator, #TODO
         'tenant_id': IntValidator, #TODO
         'softdelete': StrValidator, #TODO
-        'created_at': StrValidator, #TODO
-        'regexp': SetValidator,
+        #'created_at': COMB(TimestampValidator, NotEmptyValidator),
+        'created_at': TimestampValidator,
         'len': LenValidator,
-        }
+        'key': UUIDValidator,
 
-SKIP_IT = [
-        'nodwh',
-        'nostaging',
-        'nocompare',
-        'deprecated',
-        ]
+        'nodwh': Ignore,
+        'nostaging': Ignore,
+        'nocompare': Ignore,
+        'deprecated': Ignore,
+        'size': Ignore,
+        'mode': Ignore,
+        'changes': Ignore,
+        'deletion': Ignore,
+#        }
+#CONTENT_TO_VALIDATOR = {
+        'set': SetValidator,
+        'uuid': UUIDValidator,
+        'decimal': IntValidator,
+        'hex': HexValidator,
+        'float': FloatValidator,
+        'json': JsonValidator, #TODO
+        'str': StrValidator,
+        'regexp': SetValidator, #TODO
+        'null': NullValidator, #TODO
+
+        'json_set': JsonSetValidator, #json array of items. Item order is not important.
+        'json_list': JsonListValidator,        #json array of items. Item order is important.
+        'set': SetValidator,          #Order is NOT important.
+        'list': SetValidator,         #Order is important.
+        }

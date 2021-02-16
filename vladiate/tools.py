@@ -1,5 +1,5 @@
 import lark
-from .validators import TYPE_TO_VALIDATOR, SPARK_TYPE_TO_VALIDATOR, SKIP_IT
+from .validators import TYPE_TO_VALIDATOR, SPARK_TYPE_TO_VALIDATOR
 
 def tree_to_dict(item, res):
     if isinstance(item, lark.Tree):
@@ -14,45 +14,116 @@ def tree_to_dict(item, res):
     else:
         assert False, item  # fall-through
 
+class Validator:
+    def __init__(self, name, options=(), meta=None):
+        assert (name in TYPE_TO_VALIDATOR) or (name in SPARK_TYPE_TO_VALIDATOR), name
+        self.name = name
+        self.options = options
+        if name in TYPE_TO_VALIDATOR:
+            if self.options:
+                self.__validator = TYPE_TO_VALIDATOR[self.name](options=self.options, meta=meta)
+            else:
+                self.__validator = TYPE_TO_VALIDATOR[self.name](meta=meta)
+        else:
+            self.__validator = SPARK_TYPE_TO_VALIDATOR[self.name]()
+
+    def get(self):
+        return self.__validator
+
+class MetaAttribute:
+    def __init__(self, name, options=(), meta=None):
+        assert name in TYPE_TO_VALIDATOR, name
+        self.name = name
+        self.options = options
+
+class Column:
+    def __init__(self, name, _type, validators, visibility):
+        assert name and _type
+        self.name = name
+        self.type = _type
+        self.validators = validators
+        self.visibility = visibility
+
+def __parse_validator(_dict, meta=None):
+    attribute = None
+    options = []
+    for c in _dict:
+        if c.get('attribute'):
+            attribute = list(c.get('attribute')[0].keys())[0]
+        elif c.get('option'):
+            options.extend(c.get('option'))
+    if not attribute:
+        raise Exception('Faled to get attribute!')
+    return Validator(attribute, options, meta)
+
+def __parse_metaattribute(_dict):
+    attribute = None
+    options = []
+    for c in _dict:
+        if c.get('attribute'):
+            attribute = list(c.get('attribute')[0].keys())[0]
+        elif c.get('option'):
+            options.extend(c.get('option'))
+    if not attribute:
+        raise Exception('Faled to get attribute!')
+    return MetaAttribute(attribute, options)
+
+def __parse_column(_dict, meta):
+    name = None
+    _type = None
+    validators = []
+    options = []
+    public = None
+    visibility = None
+    for prop in _dict:
+        if prop.get('name'):
+            name = prop['name'][0]
+        elif prop.get('type'):
+            _type = list(prop['type'][0].keys())[0]
+            validators.append(Validator(_type))
+        elif prop.get('validator'):
+            validators.append(__parse_validator(prop.get('validator'), meta=meta))
+        elif prop.get('visibility'):
+            visibility = list(prop.get('visibility')[0].keys())[0]
+    return Column(name, _type, [v.get() for v in validators], visibility)
+
 def simplify(_dict):
     res = {}
+    meta = {}
     for c in _dict['start']:
         class_name = ''
-        if not c.get('class'):
+        content = c.get('meta')
+        if not content:
             continue
-        for attr in c.get('class'):
+        for attr in content:
             if attr.get('class_name'):
-                res[attr['class_name'][0]] = {}
                 class_name = attr['class_name'][0]
+                if not res.get(class_name):
+                    res[class_name] = {}
+                if not meta.get(class_name):
+                    meta[class_name] = {}
         assert class_name
-        for attr in c.get('class'):
-            if attr.get('column'):
-                name = None
-                _type = None
-                validator = None
-                options = []
-                public = True
-                for prop in attr['column']:
-                    if prop.get('name'):
-                        name = prop['name'][0]
-                    elif prop.get('type'):
-                        _type = prop['type'][0]
-                    elif prop.get('options'):
-                        options = set(d['option'][0] for d in prop['options'])
-                    elif prop.get('validator'):
-                        validator = prop['validator'][0]
-                        if validator == 'deprecated':
-                            continue
-                    elif 'protected' in prop.keys() or 'privet' in prop.keys():
-                        public = False
-                if not name or not _type:
-                    raise Exception(repr(name, _type))
-                if not public:
-                    continue
-                res[class_name][name] = [SPARK_TYPE_TO_VALIDATOR[_type]()]
-                if validator and  validator not in SKIP_IT:
-                    if options:
-                        res[class_name][name].append(TYPE_TO_VALIDATOR[validator](options=options))
-                    else:
-                        res[class_name][name].append(TYPE_TO_VALIDATOR[validator]())
+        for attr in content:
+            if not attr.get('validator'):
+                continue
+            attribute = __parse_metaattribute(attr['validator'])
+            meta[class_name][attribute.name] = attribute.options
+
+    for c in _dict['start']:
+        class_name = ''
+        content = c.get('class')
+        if not content:
+            continue
+        for attr in content:
+            if attr.get('class_name'):
+                class_name = attr['class_name'][0]
+                if not res.get(class_name):
+                    res[class_name] = {}
+                if not meta.get(class_name):
+                    meta[class_name] = {}
+        assert class_name
+        for attr in content:
+            if c.get('class') and attr.get('column'):
+                column = __parse_column(attr.get('column'), meta.get(class_name))
+                res[class_name][column.name] = column.validators
     return res

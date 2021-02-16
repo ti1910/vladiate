@@ -20,31 +20,38 @@ meta: "note" position "of" class_name (validator)* "end note"
 position: position_set
 
 position_set: "right" -> right
-        | "left" -> left
+            | "left" -> left
 
-column: visibility name type (" " validator)*
+column: visibility? name type (" " validator)*
 
 type: type_set
 
 type_set: "string" -> string
-    | "int" -> int
-    | "bigint" -> bigint
-    | "smallint" -> smallint
-    | "tinyint" -> tyniint
-    | "timestamp" -> timestamp
-    | "date" -> date
-    | "float" -> float
-    | "double" -> double
+        | "int" -> int
+        | "bigint" -> bigint
+        | "smallint" -> smallint
+        | "tinyint" -> tinyint
+        | "timestamp" -> timestamp
+        | "date" -> date
+        | "float" -> float
+        | "double" -> double
 
 attribute_set: "tenant_id" -> tenant_id
-         | "regexp" -> regexp
-         | "created_at" -> created_at
-         | "softdelete" -> softdelete
-         | "deident" -> deident
-         | "size" -> size
-         | "mode" -> mode
-         | "changes" -> changes
-         | "deletion" -> deletion
+             | "regexp" -> regexp
+             | "created_at" -> created_at
+             | "softdelete" -> softdelete
+             | "deident" -> deident
+             | "size" -> size
+             | "mode" -> mode
+             | "changes" -> changes
+             | "deletion" -> deletion
+             | "from" -> from
+             | "len" -> len
+             | "nodwh" -> nodwh
+             | "nostaging" -> nostaging
+             | "nocompare" -> nocompare
+             | "deprecated" -> deprecated
+             | "key" -> key
 
 attribute: attribute_set
 
@@ -94,15 +101,17 @@ relationship: arrow_end_1 cardinality? arrow_head_1 arrow_body arrow_head_2 card
 cardinality: ESCAPED_STRING
 
 // Variables and Methods visibility
-visibility: "+" -> public
-          | "-" -> private
-          | "#" -> protected
-          | "~" -> package
+visibility_set: "+" -> public
+              | "-" -> private
+              | "#" -> protected
+              | "~" -> package
+
+visibility: visibility_set
 
 arrow_end_1: CNAME
 arrow_end_2: CNAME
 name: CNAME
-option: (CNAME|ESCAPED_STRING|WORD|DIGIT)
+option: (CNAME|INT)
 sparam: CNAME
 svalue: CNAME|WORD|ESCAPED_STRING|DIGIT
 class_name: CNAME
@@ -115,4 +124,5 @@ group_title: (WORD|ESCAPED_STRING|DIGIT)*
 %import common.WORD
 %import common.DIGIT
 %import common.WS
+%import common.INT
 %ignore WS
