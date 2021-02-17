@@ -15,15 +15,15 @@ def tree_to_dict(item, res):
         assert False, item  # fall-through
 
 class Validator:
-    def __init__(self, name, options=(), meta=None):
+    def __init__(self, name, options=(), ent_attr=None):
         assert (name in TYPE_TO_VALIDATOR) or (name in SPARK_TYPE_TO_VALIDATOR), name
         self.name = name
         self.options = options
         if name in TYPE_TO_VALIDATOR:
             if self.options:
-                self.__validator = TYPE_TO_VALIDATOR[self.name](options=self.options, meta=meta)
+                self.__validator = TYPE_TO_VALIDATOR[self.name](options=self.options, ent_attr=ent_attr)
             else:
-                self.__validator = TYPE_TO_VALIDATOR[self.name](meta=meta)
+                self.__validator = TYPE_TO_VALIDATOR[self.name](ent_attr=ent_attr)
         else:
             self.__validator = SPARK_TYPE_TO_VALIDATOR[self.name]()
 
@@ -31,7 +31,7 @@ class Validator:
         return self.__validator
 
 class MetaAttribute:
-    def __init__(self, name, options=(), meta=None):
+    def __init__(self, name, options=(), ent_attr=None):
         assert name in TYPE_TO_VALIDATOR, name
         self.name = name
         self.options = options
@@ -44,7 +44,7 @@ class Column:
         self.validators = validators
         self.visibility = visibility
 
-def __parse_validator(_dict, meta=None):
+def __parse_validator(_dict, ent_attr=None):
     attribute = None
     options = []
     for c in _dict:
@@ -54,9 +54,9 @@ def __parse_validator(_dict, meta=None):
             options.extend(c.get('option'))
     if not attribute:
         raise Exception('Faled to get attribute!')
-    return Validator(attribute, options, meta)
+    return Validator(attribute, options, ent_attr)
 
-def __parse_metaattribute(_dict):
+def __parse_ent_attrattribute(_dict):
     attribute = None
     options = []
     for c in _dict:
@@ -68,7 +68,7 @@ def __parse_metaattribute(_dict):
         raise Exception('Faled to get attribute!')
     return MetaAttribute(attribute, options)
 
-def __parse_column(_dict, meta):
+def __parse_column(_dict, ent_attr=None):
     name = None
     _type = None
     validators = []
@@ -82,32 +82,30 @@ def __parse_column(_dict, meta):
             _type = list(prop['type'][0].keys())[0]
             validators.append(Validator(_type))
         elif prop.get('validator'):
-            validators.append(__parse_validator(prop.get('validator'), meta=meta))
+            validators.append(__parse_validator(prop.get('validator'), ent_attr=ent_attr))
         elif prop.get('visibility'):
             visibility = list(prop.get('visibility')[0].keys())[0]
     return Column(name, _type, [v.get() for v in validators], visibility)
 
 def simplify(_dict):
     res = {}
-    meta = {}
+    ent_attr = {}
     for c in _dict['start']:
         class_name = ''
-        content = c.get('meta')
+        content = c.get('ent_attr')
         if not content:
             continue
         for attr in content:
             if attr.get('class_name'):
                 class_name = attr['class_name'][0]
-                if not res.get(class_name):
-                    res[class_name] = {}
-                if not meta.get(class_name):
-                    meta[class_name] = {}
+                if not ent_attr.get(class_name):
+                    ent_attr[class_name] = {}
         assert class_name
         for attr in content:
             if not attr.get('validator'):
                 continue
-            attribute = __parse_metaattribute(attr['validator'])
-            meta[class_name][attribute.name] = attribute.options
+            attribute = __parse_ent_attrattribute(attr['validator'])
+            ent_attr[class_name][attribute.name] = attribute.options
 
     for c in _dict['start']:
         class_name = ''
@@ -119,11 +117,9 @@ def simplify(_dict):
                 class_name = attr['class_name'][0]
                 if not res.get(class_name):
                     res[class_name] = {}
-                if not meta.get(class_name):
-                    meta[class_name] = {}
         assert class_name
         for attr in content:
             if c.get('class') and attr.get('column'):
-                column = __parse_column(attr.get('column'), meta.get(class_name))
+                column = __parse_column(attr.get('column'), ent_attr.get(class_name))
                 res[class_name][column.name] = column.validators
     return res

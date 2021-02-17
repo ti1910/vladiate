@@ -1,4 +1,4 @@
-start: "@startuml" (skinparam | class | relationship | meta)* "@enduml"
+start: "@startuml" (skinparam | class | relationship | ent_attr)* "@enduml"
 
 // Skinparam
 skinparam: "skinparam" sparam svalue
@@ -15,7 +15,7 @@ class_group_title: ".." (group_title "..")?
                  | "__" (group_title "__")?
                  | "=="
 
-meta: "note" position "of" class_name (validator)* "end note"
+ent_attr: "note" position "of" class_name (validator)* "end note"
 
 position: position_set
 
@@ -38,6 +38,8 @@ type_set: "string" -> string
 
 attribute_set: "tenant_id" -> tenant_id
              | "regexp" -> regexp
+             | "set" -> set
+             | "list" -> list
              | "created_at" -> created_at
              | "softdelete" -> softdelete
              | "deident" -> deident
@@ -52,6 +54,15 @@ attribute_set: "tenant_id" -> tenant_id
              | "nocompare" -> nocompare
              | "deprecated" -> deprecated
              | "key" -> key
+             | "uuid" -> uuid
+             | "decimal" -> decimal
+             | "hex" -> hex
+             | "float" -> float
+             | "json" -> json
+             | "str" -> str
+             | "null" -> null
+             | "json_set" -> json_set
+             | "json_list" -> json_list
 
 attribute: attribute_set
 

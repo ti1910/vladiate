@@ -14,6 +14,9 @@ class DictReader(csv.DictReader):
 
     @property
     def fieldnames(self):
+        if self._fieldnames is not None:
+            return self._fieldnames
+        meta = {}
         if self._fieldnames is None:
             try:
                 schema = next(self.reader)
@@ -23,12 +26,18 @@ class DictReader(csv.DictReader):
                 schema = {k:v for k,v in [field.split() for field in schema]}
                 self._schema = schema
                 self._fieldnames = schema.keys()
-                while next(self.reader)[0][0] == '#':
-                    # TODO dont skip meta
-                    pass
+                while True:
+                    line = next(self.reader)[0]
+                    if line[0] != '#':
+                        break
+                    line = line[1:]
+                    key, val = line.split(': ')
+                    meta[key] = val
             except StopIteration:
                 pass
         self.line_num = self.reader.line_num
+        self._meta = meta
+        print(self._meta)
         return self._fieldnames
 
 
