@@ -201,10 +201,10 @@ def load_umlfile(umlfile, csvfile):
         tree = parser.parse(f.read())
     res = {}
     tree_to_dict(tree, res)
-    res = simplify(res)
+    res, schema = simplify(res)
     vlads = {}
     for val in res.keys():
-        vlads[val] = type(val, (Vlad,), dict(source = LocalFile(csvfile), validators = res[val]))
+        vlads[val] = type(val, (Vlad,), dict(source = LocalFile(csvfile), validators = res[val], schema=schema[val]))
     return vlads
 
 def _vladiate(vlad):
@@ -269,7 +269,7 @@ def main():
     all_passed = True
     if arguments.processes == 1:
         for vlad in vlad_classes:
-            passed = vlad(source=vlad.source, quiet=arguments.quiet).validate()
+            passed = vlad(source=vlad.source, quiet=arguments.quiet, schema=vlad.schema).validate()
             all_passed = all_passed and passed
 
     else:

@@ -37,7 +37,6 @@ class DictReader(csv.DictReader):
                 pass
         self.line_num = self.reader.line_num
         self._meta = meta
-        print(self._meta)
         return self._fieldnames
 
 
@@ -45,6 +44,7 @@ class Vlad(object):
     def __init__(
         self,
         source,
+        schema,
         validators={},
         default_validator=EmptyValidator,
         delimiter=None,
@@ -61,6 +61,7 @@ class Vlad(object):
         self.line_count = 0
         self.ignore_missing_validators = ignore_missing_validators
         self.logger.disabled = quiet
+        self.schema = schema
 
         self.validators.update(
             {
@@ -153,6 +154,10 @@ class Vlad(object):
             if reader.schema[field] not in SPARK_TYPE_TO_VALIDATOR:
                 self.logger.error("Looks like type of {} doesnt mutch with CSV schema".format(field))
                 return False
+
+        if reader.schema != self.schema:
+            self.logger.error("Looks like type of {} doesnt mutch with CSV schema".format(field))
+            return False
 
         if self.missing_fields:
             self.logger.info("\033[1;33m" + "Missing..." + "\033[0m")

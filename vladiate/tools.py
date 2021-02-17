@@ -15,23 +15,23 @@ def tree_to_dict(item, res):
         assert False, item  # fall-through
 
 class Validator:
-    def __init__(self, name, options=(), ent_attr=None):
+    def __init__(self, name, options=()):
         assert (name in TYPE_TO_VALIDATOR) or (name in SPARK_TYPE_TO_VALIDATOR), name
         self.name = name
         self.options = options
         if name in TYPE_TO_VALIDATOR:
             if self.options:
-                self.__validator = TYPE_TO_VALIDATOR[self.name](options=self.options, ent_attr=ent_attr)
+                self.__validator = TYPE_TO_VALIDATOR[self.name](options=self.options)
             else:
-                self.__validator = TYPE_TO_VALIDATOR[self.name](ent_attr=ent_attr)
+                self.__validator = TYPE_TO_VALIDATOR[self.name]()
         else:
             self.__validator = SPARK_TYPE_TO_VALIDATOR[self.name]()
 
     def get(self):
         return self.__validator
 
-class MetaAttribute:
-    def __init__(self, name, options=(), ent_attr=None):
+class Attribute:
+    def __init__(self, name, options=()):
         assert name in TYPE_TO_VALIDATOR, name
         self.name = name
         self.options = options
@@ -44,7 +44,7 @@ class Column:
         self.validators = validators
         self.visibility = visibility
 
-def __parse_validator(_dict, ent_attr=None):
+def __parse_validator(_dict):
     attribute = None
     options = []
     for c in _dict:
@@ -54,7 +54,7 @@ def __parse_validator(_dict, ent_attr=None):
             options.extend(c.get('option'))
     if not attribute:
         raise Exception('Faled to get attribute!')
-    return Validator(attribute, options, ent_attr)
+    return Validator(attribute, options)
 
 def __parse_ent_attrattribute(_dict):
     attribute = None
@@ -66,9 +66,9 @@ def __parse_ent_attrattribute(_dict):
             options.extend(c.get('option'))
     if not attribute:
         raise Exception('Faled to get attribute!')
-    return MetaAttribute(attribute, options)
+    return Attribute(attribute, options)
 
-def __parse_column(_dict, ent_attr=None):
+def __parse_column(_dict):
     name = None
     _type = None
     validators = []
@@ -82,7 +82,7 @@ def __parse_column(_dict, ent_attr=None):
             _type = list(prop['type'][0].keys())[0]
             validators.append(Validator(_type))
         elif prop.get('validator'):
-            validators.append(__parse_validator(prop.get('validator'), ent_attr=ent_attr))
+            validators.append(__parse_validator(prop.get('validator')))
         elif prop.get('visibility'):
             visibility = list(prop.get('visibility')[0].keys())[0]
     return Column(name, _type, [v.get() for v in validators], visibility)
@@ -90,6 +90,8 @@ def __parse_column(_dict, ent_attr=None):
 def simplify(_dict):
     res = {}
     ent_attr = {}
+    schema = {}
+
     for c in _dict['start']:
         class_name = ''
         content = c.get('ent_attr')
@@ -117,9 +119,12 @@ def simplify(_dict):
                 class_name = attr['class_name'][0]
                 if not res.get(class_name):
                     res[class_name] = {}
+                if not schema.get(class_name):
+                    schema[class_name] = {}
         assert class_name
         for attr in content:
             if c.get('class') and attr.get('column'):
-                column = __parse_column(attr.get('column'), ent_attr.get(class_name))
+                column = __parse_column(attr.get('column'))
                 res[class_name][column.name] = column.validators
-    return res
+                schema[class_name][column.name] = column.type
+    return res, schema
