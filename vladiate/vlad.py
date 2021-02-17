@@ -6,45 +6,52 @@ from vladiate.validators import EmptyValidator, SPARK_TYPE_TO_VALIDATOR
 from vladiate import logs
 
 class DictReader(csv.DictReader):
-    _schema = None
+    _meta = {'schema': {},
+             'key': [],
+             'order': None,
+             'version': None,
+             'tenant': [],
+             'deident': [],
+             }
 
     @property
-    def schema(self):
-        return self._schema
+    def meta(self):
+        return self._meta
 
     @property
     def fieldnames(self):
-        if self._fieldnames is not None:
-            return self._fieldnames
-        meta = {}
-        if self._fieldnames is None:
+        meta = dict(self._meta)
+        if not self.meta['schema'].keys():
             try:
-                schema = next(self.reader)
-                if not schema or not schema[0].startswith('#schema: '):
-                    raise Exception('Failed read schema!')
-                schema[0] = schema[0][len('#schema: '):]
-                schema = {k:v for k,v in [field.split() for field in schema]}
-                self._schema = schema
-                self._fieldnames = schema.keys()
                 while True:
-                    line = next(self.reader)[0]
-                    if line[0] != '#':
+                    line = next(self.reader)
+                    if line[0][0] != '#':
                         break
-                    line = line[1:]
-                    key, val = line.split(': ')
-                    meta[key] = val
+                    key, line[0] = line[0][1:].split(': ')
+                    assert key in meta.keys()
+                    if key == 'schema':
+                        schema = {}
+                        for _ in line:
+                            k,v = _.split()
+                            schema[k] = v
+                        line = schema
+                    if key == 'version':
+                        assert len(line) == 1
+                        line = line[0]
+                    meta[key] = line
             except StopIteration:
                 pass
+        assert 'schema' in meta and 'key' in meta
         self.line_num = self.reader.line_num
         self._meta = meta
-        return self._fieldnames
+        return self.meta['schema'].keys()
 
 
 class Vlad(object):
     def __init__(
         self,
         source,
-        schema,
+        meta,
         validators={},
         default_validator=EmptyValidator,
         delimiter=None,
@@ -61,7 +68,7 @@ class Vlad(object):
         self.line_count = 0
         self.ignore_missing_validators = ignore_missing_validators
         self.logger.disabled = quiet
-        self.schema = schema
+        self.meta = meta
 
         self.validators.update(
             {
@@ -150,13 +157,13 @@ class Vlad(object):
             self._log_missing_fields()
             return False
 
-        for field in reader.schema.keys():
-            if reader.schema[field] not in SPARK_TYPE_TO_VALIDATOR:
+        for field in reader.meta['schema'].keys():
+            if reader.meta['schema'][field] not in SPARK_TYPE_TO_VALIDATOR:
                 self.logger.error("Looks like type of {} doesnt mutch with CSV schema".format(field))
                 return False
 
-        if reader.schema != self.schema:
-            self.logger.error("Looks like type of {} doesnt mutch with CSV schema".format(field))
+        if reader.meta['schema'] != self.meta['schema']:
+            self.logger.error("Looks like type of {} doesnt mutch with CSV meta".format(field))
             return False
 
         if self.missing_fields:

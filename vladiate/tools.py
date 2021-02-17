@@ -90,7 +90,7 @@ def __parse_column(_dict):
 def simplify(_dict):
     res = {}
     ent_attr = {}
-    schema = {}
+    meta = {}
 
     for c in _dict['start']:
         class_name = ''
@@ -119,12 +119,12 @@ def simplify(_dict):
                 class_name = attr['class_name'][0]
                 if not res.get(class_name):
                     res[class_name] = {}
-                if not schema.get(class_name):
-                    schema[class_name] = {}
+                if not meta.get(class_name):
+                    meta[class_name] = {'schema': {}, 'key': {}}
         assert class_name
         for attr in content:
             if c.get('class') and attr.get('column'):
                 column = __parse_column(attr.get('column'))
                 res[class_name][column.name] = column.validators
-                schema[class_name][column.name] = column.type
-    return res, schema
+                meta[class_name]['schema'][column.name] = column.type
+    return res, meta, ent_attr
